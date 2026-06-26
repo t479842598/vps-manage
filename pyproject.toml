@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vps-dashboard"
+version = "0.1.0"
+description = "VPS 项目仪表盘 — 展示 VPS 上所有项目的运行状态"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

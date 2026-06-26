@@ -1,0 +1,12 @@
+{
+  "projects": [
+    {
+      "name": "glm2api",
+      "path": "/opt/glm2api",
+      "port": 8000,
+      "description": "ChatGLM Web API → OpenAI 兼容 API 代理，支持 GLM 全系列模型（GLM-5.2/5.1/5/4.7/4.6 等），含管理面板和 API Key 管理",
+      "github_url": "https://github.com/t479842598/glm2api-manage",
+      "service_name": "glm2api"
+    }
+  ]
+}

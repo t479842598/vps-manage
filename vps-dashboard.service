@@ -1,0 +1,14 @@
+[Unit]
+Description=VPS Project Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/vps-dashboard
+ExecStart=/usr/bin/python3 /opt/vps-dashboard/server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
