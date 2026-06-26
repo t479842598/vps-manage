@@ -4,9 +4,100 @@
       "name": "glm2api",
       "path": "/opt/glm2api",
       "port": 8000,
-      "description": "ChatGLM Web API → OpenAI 兼容 API 代理，支持 GLM 全系列模型（GLM-5.2/5.1/5/4.7/4.6 等），含管理面板和 API Key 管理",
+      "domain": "api.274747.xyz",
+      "description": "ChatGLM Web API → OpenAI 兼容 API 代理，支持 GLM 全系列模型（GLM-5.2/5.1/5/4.7/4.6 等）",
       "github_url": "https://github.com/t479842598/glm2api-manage",
       "service_name": "glm2api"
+    },
+    {
+      "name": "gemini-web2api",
+      "path": "/opt/gemini-web2api-manage",
+      "port": 3004,
+      "domain": "geminiapi.274747.xyz",
+      "description": "Gemini Web API → OpenAI 兼容 API 代理",
+      "github_url": "https://github.com/t479842598/gemini-web2api-manage",
+      "service_name": "gemini-web2api"
+    },
+    {
+      "name": "freebuff2api",
+      "path": "/opt/freebuff2api-vercel",
+      "port": 3002,
+      "domain": "freebuff.274747.xyz",
+      "description": "FreeBuff Web → OpenAI 兼容 API 代理",
+      "github_url": "https://github.com/t479842598/freebuff2api-vercel",
+      "service_name": "freebuff2api"
+    },
+    {
+      "name": "DeepSeek Proxy",
+      "path": "/opt/deepseek-fr-reverse",
+      "port": 9000,
+      "domain": "ds.274747.xyz",
+      "description": "DeepSeek 转发代理 (含 dsapi.274747.xyz)",
+      "github_url": null,
+      "service_name": "ds-piracy"
+    },
+    {
+      "name": "Open WebUI",
+      "path": "/opt/open-webui",
+      "port": 3001,
+      "domain": "webui.274747.xyz",
+      "description": "ChatGPT 风格 AI 对话前端 (Docker)",
+      "github_url": null,
+      "service_name": null
+    },
+    {
+      "name": "Octopus",
+      "path": "/opt/octopus",
+      "port": 8080,
+      "domain": "octopus.274747.xyz",
+      "description": "Octopus 服务",
+      "github_url": null,
+      "service_name": null
+    },
+    {
+      "name": "TG FileStreamBot",
+      "path": "/opt/tg-filestreambot",
+      "port": 18038,
+      "domain": "tgfsb.274747.xyz",
+      "description": "Telegram 文件流机器人",
+      "github_url": null,
+      "service_name": "tg-filestreambot"
+    },
+    {
+      "name": "1Panel",
+      "path": "/opt/1panel",
+      "port": 10086,
+      "domain": "panel.274747.xyz",
+      "description": "Linux 服务器管理面板",
+      "github_url": null,
+      "service_name": "1panel-core"
+    },
+    {
+      "name": "x-ui",
+      "path": "/opt",
+      "port": 14798,
+      "domain": "xui.274747.xyz",
+      "description": "x-ui 代理管理面板",
+      "github_url": null,
+      "service_name": "x-ui"
+    },
+    {
+      "name": "Beszel Monitor",
+      "path": "/opt/beszel-agent",
+      "port": 8090,
+      "domain": "monitor.274747.xyz",
+      "description": "Beszel 服务器资源监控面板",
+      "github_url": null,
+      "service_name": "beszel-agent"
+    },
+    {
+      "name": "vps-dashboard",
+      "path": "/opt/vps-dashboard",
+      "port": 9090,
+      "domain": "dash.274747.xyz",
+      "description": "VPS 项目仪表盘 — 本页面",
+      "github_url": "https://github.com/t479842598/vps-manage",
+      "service_name": "vps-dashboard"
     }
   ]
 }
