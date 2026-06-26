@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VPS 项目仪表盘</title>
   <style>
-    /* ── Reset & Variables ─────────────────────────────── */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
       --bg-0:#06090f; --bg-1:#0a0f1a; --bg-2:#0f1624;
@@ -19,7 +18,6 @@
       font-family:var(--sans); background:var(--bg-0); color:var(--text);
       min-height:100dvh; line-height:1.5; -webkit-font-smoothing:antialiased;
     }
-    /* Grid background */
     body::before{
       content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
       background-image:
@@ -28,17 +26,11 @@
       background-size:60px 60px;
       mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,#000 20%,transparent 70%);
     }
-    /* Scanlines */
     body::after{
       content:""; position:fixed; inset:0; z-index:1; pointer-events:none;
       background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.015) 2px,rgba(0,0,0,.015) 4px);
     }
-    /* ── Layout ───────────────────────────────────────── */
-
     #app{position:relative;z-index:2;max-width:1400px;margin:0 auto;padding:0 24px}
-
-    /* ── Header ───────────────────────────────────────── */
-
     .header{
       padding:40px 0 28px; display:flex; align-items:flex-end; justify-content:space-between;
       flex-wrap:wrap; gap:16px; border-bottom:1px solid var(--border);
@@ -50,7 +42,6 @@
       background-clip:text;
     }
     .header .subtitle{font-size:13px;color:var(--muted);margin-top:4px}
-
     .vps-badge{
       display:flex; align-items:center; gap:20px;
       padding:12px 20px; border-radius:12px; border:1px solid rgba(0,212,255,.15);
@@ -60,15 +51,11 @@
     .vps-badge .vps-stat .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
     .vps-badge .vps-stat .value{font-size:18px;font-weight:700;font-family:var(--mono)}
     .vps-divider{width:1px;height:36px;background:var(--border)}
-
-    /* ── Cards Grid ───────────────────────────────────── */
-
     .cards-grid{
       display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr));
       gap:20px; padding:32px 0 60px;
     }
     @media(max-width:480px){.cards-grid{grid-template-columns:1fr}}
-
     .card{
       background:var(--card-bg); border:1px solid var(--card-border);
       border-radius:16px; padding:24px; position:relative; overflow:hidden;
@@ -85,16 +72,12 @@
       background:linear-gradient(90deg,transparent,var(--cyan),transparent);
       opacity:.4;
     }
-    /* Card glow on hover */
     .card::after{
       content:""; position:absolute; inset:-1px; border-radius:17px; z-index:-1;
       background:linear-gradient(135deg,rgba(0,212,255,.12),rgba(0,255,136,.06));
       opacity:0; transition:opacity .3s ease;
     }
     .card:hover::after{opacity:1}
-
-    /* ── Card content ─────────────────────────────────── */
-
     .card-header{
       display:flex; align-items:flex-start; justify-content:space-between;
       margin-bottom:16px;
@@ -103,7 +86,6 @@
       font-size:20px; font-weight:700; letter-spacing:-.01em;
       display:flex; align-items:center; gap:10px;
     }
-    /* Status dot */
     .status-dot{
       width:10px; height:10px; border-radius:50%; flex-shrink:0; position:relative;
     }
@@ -113,15 +95,13 @@
       border:1.5px solid rgba(0,255,136,.3);animation:pulse 2s ease-in-out infinite;
     }
     .status-dot.inactive{background:var(--red);box-shadow:0 0 8px rgba(239,68,68,.3)}
+    .status-dot.failed{background:var(--amber);box-shadow:0 0 8px rgba(245,158,11,.3)}
     .status-dot.unknown{background:var(--muted)}
     @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.8);opacity:.3}}
-
     .card-desc{
       font-size:13px; color:var(--muted); margin-bottom:18px; line-height:1.6;
     }
-    /* Data rows */
     .data-rows{display:flex;flex-direction:column;gap:10px}
-
     .data-row{
       display:flex; align-items:center; gap:10px; font-size:13px;
     }
@@ -133,14 +113,11 @@
       font-family:var(--mono); font-size:12px; word-break:break-all;
     }
     .data-row .value.highlight{color:var(--emerald);font-weight:600}
-
-    /* Links */
     .address-link{
       color:var(--cyan); text-decoration:none; transition:color .2s;
       border-bottom:1px dashed rgba(0,212,255,.3);
     }
     .address-link:hover{color:var(--emerald);border-color:rgba(0,255,136,.4)}
-
     .github-link{
       display:inline-flex; align-items:center; gap:6px; color:var(--text);
       text-decoration:none; font-size:13px; padding:6px 12px;
@@ -149,26 +126,19 @@
     }
     .github-link:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
     .github-link svg{width:16px;height:16px;fill:currentColor}
-
-    /* Status badge */
     .status-badge{
       display:inline-block; padding:3px 10px; border-radius:6px;
       font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
     }
     .status-badge.active{background:rgba(0,255,136,.1);color:var(--emerald)}
     .status-badge.inactive{background:rgba(239,68,68,.1);color:var(--red)}
+    .status-badge.failed{background:rgba(245,158,11,.1);color:var(--amber)}
     .status-badge.unknown{background:rgba(100,116,139,.1);color:var(--muted)}
-
-    /* ── Footer ───────────────────────────────────────── */
-
     .footer{
       text-align:center; padding:24px 0 40px; font-size:12px; color:var(--muted);
       border-top:1px solid var(--border);
     }
     .footer .refresh-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--emerald);margin-right:6px;animation:pulse 1.5s ease-in-out infinite}
-
-    /* ── Loading / Empty ──────────────────────────────── */
-
     .loading-state,.empty-state{
       text-align:center;padding:80px 20px;color:var(--muted);
     }
@@ -177,7 +147,6 @@
       border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;
     }
     @keyframes spin{to{transform:rotate(360deg)}}
-
     .error-banner{
       background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
       color:var(--red);padding:14px 20px;border-radius:10px;margin:24px 0;
@@ -187,21 +156,20 @@
 </head>
 <body>
 <div id="app">
-  <!-- ── Header ────────────────────────────────────────── -->
   <div class="header">
     <div>
-      <h1>VPS 项目仪表盘</h1>
-      <div class="subtitle">{{ vpsHost }} · {{ projectCount }} 个项目</div>
+      <h1>⚡ VPS 项目仪表盘</h1>
+      <div class="subtitle">{{ vpsInfo.host }} · {{ projects.length }} 个项目</div>
     </div>
     <div class="vps-badge">
       <div class="vps-stat">
         <div class="label">内存</div>
-        <div class="value">{{ vpsMemory }}</div>
+        <div class="value">{{ vpsInfo.memory }}</div>
       </div>
       <div class="vps-divider"></div>
       <div class="vps-stat">
         <div class="label">项目</div>
-        <div class="value">{{ projectCount }}</div>
+        <div class="value">{{ projects.length }}</div>
       </div>
       <div class="vps-divider"></div>
       <div class="vps-stat">
@@ -211,19 +179,16 @@
     </div>
   </div>
 
-  <!-- ── Error ─────────────────────────────────────────── -->
   <div class="error-banner" v-if="error">
     <span>⚠</span> {{ error }}
-    <button style="margin-left:auto;background:none;border:1px solid rgba(255,255,255,.15);color:var(--text);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px" onclick="location.reload()">重试</button>
+    <button style="margin-left:auto;background:none;border:1px solid rgba(255,255,255,.15);color:var(--text);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px" @click="fetchProjects">重试</button>
   </div>
 
-  <!-- ── Loading ───────────────────────────────────────── -->
   <div class="loading-state" v-if="loading && !projects.length">
     <div class="spinner"></div>
     <div>正在获取项目数据...</div>
   </div>
 
-  <!-- ── Cards Grid ────────────────────────────────────── -->
   <div class="cards-grid" v-if="projects.length">
     <div class="card" v-for="proj in projects" :key="proj.name">
       <div class="card-header">
@@ -279,29 +244,33 @@
     </div>
   </div>
 
-  <!-- ── Empty ─────────────────────────────────────────── -->
   <div class="empty-state" v-if="!loading && !projects.length && !error">
     暂无项目数据。请在 projects.json 中添加项目。
   </div>
 
-  <!-- ── Footer ────────────────────────────────────────── -->
   <div class="footer">
     <span class="refresh-dot"></span>
     每 30 秒自动刷新 · 上次更新: {{ updatedAt }}
   </div>
 </div>
 
+<!-- Vue CDN must load BEFORE inline script -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script>
-  const app = {
+(function() {
+  if (typeof Vue === 'undefined') {
+    document.getElementById('app').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">Vue.js 加载失败，请刷新页面重试</div>';
+    return;
+  }
+  const app = Vue.createApp({
     data() {
       return {
         projects: [],
         updatedAt: '--',
-        vpsHost: '23.95.78.148',
-        projectCount: 0,
-        vpsMemory: '--',
+        vpsInfo: { host: '23.95.78.148', memory: '--' },
         loading: true,
         error: null,
+        _timer: null
       }
     },
     methods: {
@@ -312,14 +281,20 @@
       async fetchProjects() {
         try {
           const resp = await fetch('/api/projects')
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+          if (!resp.ok) throw new Error('HTTP ' + resp.status)
           const data = await resp.json()
           this.projects = data.projects || []
-          this.projectCount = this.projects.length
           this.updatedAt = data.updated_at || '--'
+          // Calculate total memory
+          let totalMem = 0
+          this.projects.forEach(p => { if (p.memory_bytes) totalMem += p.memory_bytes })
+          if (totalMem > 0) {
+            const mb = Math.round(totalMem / 1048576)
+            this.vpsInfo.memory = mb >= 1024 ? (mb/1024).toFixed(1) + ' GB' : mb + ' MB'
+          }
           this.error = null
         } catch (e) {
-          this.error = `获取数据失败: ${e.message}`
+          this.error = '获取数据失败: ' + e.message
         } finally {
           this.loading = false
         }
@@ -330,11 +305,11 @@
       this._timer = setInterval(() => this.fetchProjects(), 30000)
     },
     beforeUnmount() {
-      clearInterval(this._timer)
+      if (this._timer) clearInterval(this._timer)
     }
-  }
-  Vue.createApp(app).mount('#app')
+  })
+  app.mount('#app')
+})();
 </script>
-<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </body>
 </html>
