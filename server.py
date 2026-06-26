@@ -5,6 +5,7 @@ Listens on 127.0.0.1:9090 only. Reverse-proxied by Nginx.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import time
 from http import HTTPStatus
@@ -105,15 +106,14 @@ def _collect_project(proj: dict) -> dict:
         result["memory_bytes"] = mem_bytes
         result["memory_human"] = _human_memory(mem_bytes)
 
-    # Uptime: ActiveEnterTimestamp in microseconds
+    # Uptime
     active_ts = _run(["systemctl", "show", svc, "--property=ActiveEnterTimestamp", "--value"])
     if active_ts:
-        # Parse: "Day YYYY-MM-DD HH:MM:SS TZ"
         try:
             parts = active_ts.split(" ", 1)
             if len(parts) >= 2:
-                ts_str = parts[1]  # "2025-06-01 14:30:00 CST"
-                ts_str = " ".join(ts_str.split()[:2])  # drop timezone
+                ts_str = parts[1]
+                ts_str = " ".join(ts_str.split()[:2])
                 started = time.mktime(time.strptime(ts_str, "%Y-%m-%d %H:%M:%S"))
                 uptime = time.time() - started
                 if uptime >= 0:
@@ -129,7 +129,7 @@ def _collect_project(proj: dict) -> dict:
         if f":{port}" in check:
             result["port_active"] = True
 
-    # Creation time: directory birth time (or last modification as fallback)
+    # Creation time
     path = result["path"]
     if path:
         dir_path = Path(path)
@@ -145,14 +145,114 @@ def _collect_project(proj: dict) -> dict:
     return result
 
 
+def _collect_server_info() -> dict:
+    """Collect host-level server info."""
+    info: dict = {
+        "hostname": os.uname().nodename if hasattr(os, "uname") else "unknown",
+        "kernel": "",
+        "cpu_model": "",
+        "cpu_cores": 0,
+        "load_1m": None,
+        "load_5m": None,
+        "load_15m": None,
+        "ram_total_human": "N/A",
+        "ram_used_human": "N/A",
+        "ram_total_bytes": None,
+        "ram_used_bytes": None,
+        "ram_percent": None,
+        "disk_total_human": "N/A",
+        "disk_used_human": "N/A",
+        "disk_percent": None,
+        "uptime_seconds": None,
+        "uptime_human": "N/A",
+    }
+
+    # CPU info
+    cpu = _run(["lscpu"])
+    for line in cpu.split(chr(10)):
+        if "Model name" in line:
+            info["cpu_model"] = line.split(":", 1)[1].strip()
+        if "CPU(s)" in line and "NUMA" not in line and "On-line" not in line:
+            try:
+                info["cpu_cores"] = int(line.split(":", 1)[1].strip())
+            except ValueError:
+                pass
+
+    # Kernel
+    info["kernel"] = _run(["uname", "-r"])
+
+    # Load
+    load = _run(["cat", "/proc/loadavg"])
+    if load:
+        parts = load.split()
+        if len(parts) >= 3:
+            try:
+                info["load_1m"] = float(parts[0])
+                info["load_5m"] = float(parts[1])
+                info["load_15m"] = float(parts[2])
+            except ValueError:
+                pass
+
+    # RAM
+    mem = _run(["free", "-b"])
+    if mem:
+        for line in mem.split(chr(10)):
+            if "Mem:" in line:
+                fields = line.split()
+                if len(fields) >= 3:
+                    try:
+                        total = int(fields[1])
+                        used = int(fields[2])
+                        info["ram_total_bytes"] = total
+                        info["ram_used_bytes"] = used
+                        info["ram_total_human"] = _human_memory(total)
+                        info["ram_used_human"] = _human_memory(used)
+                        if total > 0:
+                            info["ram_percent"] = round(used / total * 100, 1)
+                    except (ValueError, IndexError):
+                        pass
+                break
+
+    # Disk
+    disk = _run(["df", "-B1", "/"])
+    if disk:
+        for line in disk.split(chr(10)):
+            fields = line.split()
+            if len(fields) >= 4 and fields[0].startswith("/"):
+                try:
+                    total_d = int(fields[1])
+                    used_d = int(fields[2])
+                    info["disk_total_human"] = _human_memory(total_d)
+                    info["disk_used_human"] = _human_memory(used_d)
+                    if total_d > 0:
+                        info["disk_percent"] = round(used_d / total_d * 100, 1)
+                except (ValueError, IndexError):
+                    pass
+                break
+
+    # System uptime
+    uptime_raw = _run(["cat", "/proc/uptime"])
+    if uptime_raw:
+        try:
+            up_sec = float(uptime_raw.split()[0])
+            info["uptime_seconds"] = int(up_sec)
+            info["uptime_human"] = _human_duration(up_sec)
+        except (ValueError, IndexError):
+            pass
+
+    return info
+
+
 class DashboardHandler(BaseHTTPRequestHandler):
-    """Single-route handler: / → index.html, /api/projects → JSON."""
+    """Single-route handler: / → index.html, /api/projects → JSON, /api/server → JSON."""
 
     def do_GET(self) -> None:
-        if self.path == "/" or self.path == "/index.html":
+        if self.path in ("/", "/index.html"):
             self._serve_html()
         elif self.path == "/api/projects":
-            self._serve_api()
+            self._serve_projects()
+        elif self.path == "/api/server":
+            self._serve_server()
         elif self.path == "/health":
             self._write_json({"status": "ok"})
         else:
@@ -168,7 +268,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _serve_api(self) -> None:
+    def _serve_projects(self) -> None:
         projects = []
         if PROJECTS_FILE.exists():
             try:
@@ -180,6 +280,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 projects.append(_collect_project(proj))
 
         self._write_json({"projects": projects, "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")})
+
+    def _serve_server(self) -> None:
+        self._write_json(_collect_server_info())
 
     def _write_json(self, payload: dict) -> None:
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")

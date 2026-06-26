@@ -10,20 +10,29 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font:14px/1.5 "Microsoft YaHei","PingFang SC",sans-serif;background:#0a0e16;color:#c8d6e5;min-height:100vh}
 #app{max-width:1360px;margin:0 auto;padding:0 20px}
-.hd{display:flex;align-items:flex-end;justify-content:space-between;padding:30px 0 20px;border-bottom:1px solid #1a2232;flex-wrap:wrap;gap:10px}
+
+/* header */
+.hd{display:flex;align-items:flex-end;justify-content:space-between;padding:28px 0 18px;border-bottom:1px solid #1a2232;flex-wrap:wrap;gap:10px}
 .hd h1{font-size:22px;color:#00d4ff;font-weight:700}
 .hd .sub{font-size:12px;color:#546e7a;margin-top:2px}
-.info{display:flex;gap:14px;padding:8px 16px;background:#0f1724;border-radius:8px;border:1px solid #1a2232}
-.info .st{text-align:center}
-.info .st .lb{font-size:10px;color:#546e7a;letter-spacing:.5px}
-.info .st .vl{font-size:15px;font-weight:700}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;padding:24px 0 40px}
+/* server status bar */
+.sbar{display:flex;flex-wrap:wrap;gap:10px;padding:14px 0;border-bottom:1px solid #1a2232}
+.si{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#0f1724;border-radius:8px;border:1px solid #1a2232}
+.si .si-lb{font-size:10px;color:#546e7a;letter-spacing:.5px}
+.si .si-vl{font-size:13px;font-weight:700;font-family:Consolas,monospace}
+.si-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:2px}
+.si-dot.g{background:#00ff88}
+.si-dot.y{background:#f59e0b}
+.si-dot.r{background:#ef4444}
+
+/* project grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;padding:18px 0 40px}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
 
-.cd{background:#0f1724;border:1px solid #1a2232;border-radius:12px;padding:20px}
-.cd-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
-.cd-nm{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px}
+.cd{background:#0f1724;border:1px solid #1a2232;border-radius:10px;padding:18px}
+.cd-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.cd-nm{font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .dot.g{background:#00ff88}
 .dot.r{background:#ef4444}
@@ -34,9 +43,9 @@ body{font:14px/1.5 "Microsoft YaHei","PingFang SC",sans-serif;background:#0a0e16
 .bdg.r{background:rgba(239,68,68,.08);color:#ef4444}
 .bdg.y{background:rgba(245,158,11,.08);color:#f59e0b}
 .bdg.u{background:rgba(84,110,122,.1);color:#546e7a}
-.cd-ds{font-size:12px;color:#546e7a;margin-bottom:12px;line-height:1.5}
-.rows{margin-top:4px}
-.rw{display:flex;gap:10px;padding:5px 0;font-size:12px;align-items:center}
+.cd-ds{font-size:12px;color:#546e7a;margin-bottom:10px}
+.rows{margin-top:2px}
+.rw{display:flex;gap:10px;padding:4px 0;font-size:12px;align-items:center}
 .rw .lb{color:#546e7a;min-width:58px;font-size:11px}
 .rw .vl{font-size:12px;word-break:break-all}
 .rw .vl.m{color:#00ff88;font-weight:600}
@@ -45,21 +54,33 @@ a.lk:hover{color:#00ff88}
 a.gh{display:inline-flex;align-items:center;gap:5px;color:#8e9eab;text-decoration:none;font-size:12px;padding:4px 10px;border:1px solid #1a2232;border-radius:5px;margin-top:8px}
 a.gh:hover{border-color:#2d3a4a;color:#c8d6e5}
 a.gh svg{width:14px;height:14px;fill:#8e9eab;vertical-align:-2px}
-.ft{padding:16px 0 30px;text-align:center;font-size:11px;color:#3d5260;border-top:1px solid #1a2232}
+
+/* footer */
+.ft{padding:14px 0 30px;text-align:center;font-size:11px;color:#3d5260;border-top:1px solid #1a2232}
+
 .ld{text-align:center;padding:80px 20px;color:#546e7a}
 .ld .sp{display:inline-block;width:28px;height:28px;border:2px solid #1a2232;border-top-color:#00d4ff;border-radius:50%;animation:sp .6s linear infinite;margin-bottom:10px}
 @keyframes sp{to{transform:rotate(360deg)}}
-.er{background:rgba(239,68,68,.05);color:#ef4444;padding:10px 16px;border-radius:6px;font-size:12px;margin:16px 0}
-.er a{color:#00d4ff}
+.er{background:rgba(239,68,68,.05);color:#ef4444;padding:10px 16px;border-radius:6px;font-size:12px;margin:12px 0}
 </style>
 </head>
 <body>
 <div id="app">
   <!-- header -->
-  <div class="hd"><div><h1>VPS 项目仪表盘</h1><div class="sub">{{ info.host }} · {{ projects.length }} 个项目</div></div><div class="info"><div class="st"><div class="lb">总内存</div><div class="vl">{{ info.memory }}</div></div><div class="st"><div class="lb">项目</div><div class="vl">{{ projects.length }}</div></div></div></div>
+  <div class="hd"><div><h1>VPS 项目仪表盘</h1><div class="sub">{{ srv.hostname }} · {{ projects.length }} 个项目 · 运行 {{ srv.uptime }}</div></div></div>
+
+  <!-- server status bar -->
+  <div class="sbar">
+    <div class="si"><div><div class="si-lb">CPU</div><div class="si-vl">{{ srv.cpu }}</div></div></div>
+    <div class="si"><div><div class="si-lb">总内存</div><div class="si-vl">{{ srv.ram_total }}</div></div></div>
+    <div class="si"><div><div class="si-lb">已用内存</div><div class="si-vl" :style="{color:srv.ram_pct>80?'#ef4444':srv.ram_pct>60?'#f59e0b':'#00ff88'}">{{ srv.ram_used }} ({{ srv.ram_pct }}%)</div></div></div>
+    <div class="si"><div><div class="si-lb">项目内存</div><div class="si-vl" style="color:#00d4ff">{{ srv.proj_mem }}</div></div></div>
+    <div class="si"><div><div class="si-lb">磁盘</div><div class="si-vl" :style="{color:srv.disk_pct>85?'#ef4444':srv.disk_pct>70?'#f59e0b':'#c8d6e5'}">{{ srv.disk_used }} / {{ srv.disk_total }} ({{ srv.disk_pct }}%)</div></div></div>
+    <div class="si"><div><div class="si-lb">系统</div><div class="si-vl">{{ srv.os }}</div></div></div>
+  </div>
 
   <!-- error -->
-  <div class="er" v-if="error">⚠ {{ error }} <a href="." style="margin-left:8px;cursor:pointer">刷新</a></div>
+  <div class="er" v-if="error">⚠ {{ error }} <a href="." style="margin-left:8px;color:#00d4ff;cursor:pointer">刷新</a></div>
 
   <!-- loading -->
   <div class="ld" v-if="loading && !projects.length"><div class="sp"></div>加载中...</div>
@@ -68,8 +89,8 @@ a.gh svg{width:14px;height:14px;fill:#8e9eab;vertical-align:-2px}
   <div class="grid" v-if="projects.length">
     <div class="cd" v-for="p in projects" :key="p.name">
       <div class="cd-hd">
-        <div class="cd-nm"><span class="dot" :class="dotClass(p.status)"></span>{{ p.name }}</div>
-        <span class="bdg" :class="dotClass(p.status)">{{ statusCn(p.status) }}</span>
+        <div class="cd-nm"><span class="dot" :class="dc(p.status)"></span>{{ p.name }}</div>
+        <span class="bdg" :class="dc(p.status)">{{ st(p.status) }}</span>
       </div>
       <div class="cd-ds">{{ p.description || '' }}</div>
       <div class="rows">
@@ -93,22 +114,31 @@ a.gh svg{width:14px;height:14px;fill:#8e9eab;vertical-align:-2px}
 <script>
 (function(){
   document.getElementById('app').style.visibility='hidden';
-  if(typeof Vue==='undefined'){document.getElementById('app').innerHTML='<div class="ld" style="padding:100px 20px">Vue 加载失败，请<a href="." style="color:#00d4ff">刷新重试</a></div>';document.getElementById('app').style.visibility='visible';return}
+  if(typeof Vue==='undefined'){document.getElementById('app').innerHTML='<div class="ld" style="padding:100px">Vue 加载失败<br><a href="." style="color:#00d4ff">刷新重试</a></div>';document.getElementById('app').style.visibility='visible';return}
   var app=Vue.createApp({
-    data:function(){return{projects:[],updatedAt:'--',info:{host:'23.95.78.148',memory:'--'},loading:true,error:null}},
+    data:function(){return{
+      projects:[],updatedAt:'--',
+      srv:{hostname:'--',uptime:'--',cpu:'--',ram_total:'--',ram_used:'--',ram_pct:0,proj_mem:'--',disk_total:'--',disk_used:'--',disk_pct:0,os:'--'},
+      loading:true,error:null
+    }},
     methods:{
-      dotClass:function(s){return{active:'g',inactive:'r',failed:'y'}[s]||'u'},
-      statusCn:function(s){return{active:'运行中',inactive:'已停止',failed:'异常',unknown:'未知'}[s]||s},
-      fetch:function(){
+      dc:function(s){return{active:'g',inactive:'r',failed:'y'}[s]||'u'},
+      st:function(s){return{active:'运行中',inactive:'已停止',failed:'异常',unknown:'未知'}[s]||s},
+      fetchAll:function(){
         var self=this;
+        // Fetch server info
+        fetch('/api/server').then(function(r){return r.json()}).then(function(d){
+          if(d.hostname) self.srv = d
+        })['catch'](function(){});
+        // Fetch projects
         fetch('/api/projects').then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(function(d){
           self.projects=d.projects||[];self.updatedAt=d.updated_at||'--';
           var mem=0;self.projects.forEach(function(p){if(p.memory_bytes)mem+=p.memory_bytes});
-          self.info.memory=mem>0?(mem/1073741824).toFixed(1)+' GB':'--';self.error=null
+          self.error=null
         })['catch'](function(e){self.error='获取失败: '+e.message})['finally'](function(){self.loading=false})
       }
     },
-    mounted:function(){this.fetch();var self=this;this._t=setInterval(function(){self.fetch()},30000)},
+    mounted:function(){this.fetchAll();var self=this;this._t=setInterval(function(){self.fetchAll()},30000)},
     beforeUnmount:function(){if(this._t)clearInterval(this._t)}
   });
   app.mount('#app');
