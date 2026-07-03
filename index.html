@@ -124,16 +124,39 @@ a.gh svg{width:14px;height:14px;fill:#8e9eab;vertical-align:-2px}
     methods:{
       dc:function(s){return{active:'g',inactive:'r',failed:'y'}[s]||'u'},
       st:function(s){return{active:'运行中',inactive:'已停止',failed:'异常',unknown:'未知'}[s]||s},
+      hm:function(bytes){
+        if(!bytes||bytes<=0)return'N/A';
+        var units=['B','KB','MB','GB','TB'],i=0,val=bytes;
+        while(val>=1024&&i<units.length-1){val/=1024;i++}
+        return val.toFixed(1)+' '+units[i]
+      },
+      mapServer:function(d){
+        var cur=this.srv;
+        return{
+          hostname:d.hostname||cur.hostname||'--',
+          uptime:d.uptime_human||cur.uptime||'--',
+          cpu:(d.cpu_cores?(''+d.cpu_cores+'核'):'--')+(d.load_1m!=null?' / '+d.load_1m.toFixed(2):''),
+          ram_total:d.ram_total_human||'N/A',
+          ram_used:d.ram_used_human||'N/A',
+          ram_pct:d.ram_percent||0,
+          proj_mem:cur.proj_mem||'--',
+          disk_total:d.disk_total_human||'N/A',
+          disk_used:d.disk_used_human||'N/A',
+          disk_pct:d.disk_percent||0,
+          os:d.kernel?('Linux '+d.kernel):'--'
+        }
+      },
       fetchAll:function(){
         var self=this;
         // Fetch server info
         fetch('/api/server').then(function(r){return r.json()}).then(function(d){
-          if(d.hostname) self.srv = d
+          if(d&&d.hostname) self.srv=self.mapServer(d)
         })['catch'](function(){});
         // Fetch projects
         fetch('/api/projects').then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(function(d){
           self.projects=d.projects||[];self.updatedAt=d.updated_at||'--';
           var mem=0;self.projects.forEach(function(p){if(p.memory_bytes)mem+=p.memory_bytes});
+          self.srv.proj_mem=self.hm(mem);
           self.error=null
         })['catch'](function(e){self.error='获取失败: '+e.message})['finally'](function(){self.loading=false})
       }
