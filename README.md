@@ -103,6 +103,8 @@ certbot --nginx -d dash.274747.xyz --redirect
 ### 2026-08-02 — 多服务器监控 + HTTPS
 - 🆕 **多服务器模块**：新增 `servers.json` 注册表与 `/api/servers` 接口，支持 SSH 远程采集（paramiko，60s 缓存）
 - 🆕 **前端「服务器」区**：每台服务器独立卡片，内存/磁盘进度条（>70% 黄、>85% 红）、负载、运行时长、在线状态
+- 🆕 **远程服务器项目监控**：`projects.json` 条目支持 `server`/`type` 字段，可监控远程服务器的 systemd 服务、Docker 容器与端口（阿里服务器 7 个项目已接入）
+- 🆕 **移动端适配**：顶部状态条小屏自动 2 列布局，卡片单列，触屏友好
 - 🗑️ 移除 TG FileStreamBot 项目；修正 glm2api 域名/端口、freebuff2api 路径等过时信息
 - 🔒 dash.274747.xyz 启用 **HTTPS**（Let's Encrypt，自动续期，HTTP 301 跳转）
 

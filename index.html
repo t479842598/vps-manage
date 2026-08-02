@@ -17,7 +17,7 @@ body{font:14px/1.5 "Microsoft YaHei","PingFang SC",sans-serif;background:#0a0e16
 .hd .sub{font-size:12px;color:#546e7a;margin-top:2px}
 
 /* server status bar */
-.sbar{display:flex;flex-wrap:wrap;gap:10px;padding:14px 0;border-bottom:1px solid #1a2232}
+.sbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px 0;border-bottom:1px solid #1a2232}
 .si{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#0f1724;border-radius:8px;border:1px solid #1a2232}
 .si .si-lb{font-size:10px;color:#546e7a;letter-spacing:.5px}
 .si .si-vl{font-size:13px;font-weight:700;font-family:Consolas,monospace}
@@ -25,6 +25,27 @@ body{font:14px/1.5 "Microsoft YaHei","PingFang SC",sans-serif;background:#0a0e16
 .si-dot.g{background:#00ff88}
 .si-dot.y{background:#f59e0b}
 .si-dot.r{background:#ef4444}
+
+/* mobile: server status bar stacks into 2 columns, tighter layout */
+@media(max-width:768px){
+  body{font-size:13px}
+  .hd{padding:20px 0 14px}
+  .hd h1{font-size:18px}
+  .sbar{grid-template-columns:repeat(2,1fr);gap:8px;padding:12px 0}
+  .si{padding:8px 10px;gap:8px}
+  .si .si-vl{font-size:12px}
+  .grid{grid-template-columns:1fr;gap:12px;padding:14px 0 30px}
+  .cd{padding:14px}
+  .sec{padding:14px 0 0}
+  .ft{padding:12px 0 24px}
+}
+@media(max-width:480px){
+  .hd h1{font-size:16px}
+  .hd .sub{font-size:11px}
+  .si{flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px}
+  .rw .lb{min-width:50px}
+  .srv-ip{display:block;margin-left:0;margin-top:2px}
+}
 
 /* project grid */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;padding:18px 0 40px}
@@ -37,6 +58,7 @@ body{font:14px/1.5 "Microsoft YaHei","PingFang SC",sans-serif;background:#0a0e16
 .sec-sub{font-size:11px;color:#546e7a}
 .sec .grid{padding-bottom:24px}
 .srv-ip{font-size:11px;color:#546e7a;font-family:Consolas,monospace;font-weight:400;margin-left:6px}
+.srv-tag{font-size:10px;color:#7dd3fc;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);padding:1px 6px;border-radius:10px;font-weight:400;margin-left:6px;white-space:nowrap}
 .pct{font-size:11px;color:#546e7a;min-width:34px;text-align:right}
 .bar{flex:1;height:6px;background:#1a2232;border-radius:3px;overflow:hidden;min-width:60px;margin-top:2px}
 .bar i{display:block;height:100%;border-radius:3px;transition:width .6s ease}
@@ -124,7 +146,7 @@ a.gh svg{width:14px;height:14px;fill:#8e9eab;vertical-align:-2px}
   <div class="grid" v-if="projects.length">
     <div class="cd" v-for="p in projects" :key="p.name">
       <div class="cd-hd">
-        <div class="cd-nm"><span class="dot" :class="dc(p.status)"></span>{{ p.name }}</div>
+        <div class="cd-nm"><span class="dot" :class="dc(p.status)"></span>{{ p.name }}<span class="srv-tag" v-if="p.server">{{ p.server }}</span></div>
         <span class="bdg" :class="dc(p.status)">{{ st(p.status) }}</span>
       </div>
       <div class="cd-ds">{{ p.description || '' }}</div>
@@ -157,8 +179,8 @@ a.gh svg{width:14px;height:14px;fill:#8e9eab;vertical-align:-2px}
       loading:true,error:null
     }},
     methods:{
-      dc:function(s){return{active:'g',inactive:'r',failed:'y'}[s]||'u'},
-      st:function(s){return{active:'运行中',inactive:'已停止',failed:'异常',unknown:'未知'}[s]||s},
+      dc:function(s){return{active:'g',inactive:'r',failed:'y',offline:'r'}[s]||'u'},
+      st:function(s){return{active:'运行中',inactive:'已停止',failed:'异常',offline:'离线',unknown:'未知'}[s]||s},
       pbar:function(p){return p>85?'#ef4444':p>70?'#f59e0b':'#00ff88'},
       hm:function(bytes){
         if(!bytes||bytes<=0)return'N/A';

@@ -40,6 +40,85 @@ REMOTE_COLLECT_CMD = (
     'echo "OS=$(grep -m1 PRETTY_NAME /etc/os-release | cut -d= -f2- | tr -d \'"\')"'
 )
 
+# Remote project collector: a python script piped via stdin.
+# Reads the project list as JSON, queries systemd/docker/ports, prints results as JSON.
+REMOTE_PROJECT_SCRIPT = r'''
+import json, subprocess, sys, time, os, datetime, re
+projects = json.loads(sys.stdin.read())
+def run(cmd):
+    try:
+        r = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE, universal_newlines=True, timeout=12)
+        return r.stdout.strip()
+    except Exception:
+        return ""
+def parse_uptime(s):
+    if not s:
+        return None
+    s = s.strip()
+    try:
+        if "T" in s:
+            s2 = s.replace("Z", "").split(".")[0]
+            dt = datetime.datetime.strptime(s2, "%Y-%m-%dT%H:%M:%S")
+            now = datetime.datetime.utcnow()
+            return max(0, int((now - dt).total_seconds()))
+        parts = s.split()
+        if len(parts) >= 3:
+            t = time.mktime(time.strptime(parts[1] + " " + parts[2], "%Y-%m-%d %H:%M:%S"))
+            return max(0, int(time.time() - t))
+    except Exception:
+        pass
+    return None
+def mem_to_bytes(s):
+    try:
+        part = s.split("/")[0].strip()
+        m = re.match(r"([\d.]+)\s*([A-Za-z]+)", part)
+        if not m:
+            return None
+        num = float(m.group(1))
+        unit = m.group(2)
+        table = {"KiB": 1024, "MiB": 1024**2, "GiB": 1024**3, "TiB": 1024**4,
+                 "kB": 1000, "MB": 1000**2, "GB": 1000**3, "B": 1}
+        return int(num * table.get(unit, 1))
+    except Exception:
+        return None
+out = []
+for p in projects:
+    res = {"status": "unknown", "memory_bytes": None, "uptime_seconds": None,
+           "port_active": False, "created_at": None}
+    t = p.get("type", "systemd")
+    svc = p.get("service_name")
+    if t == "systemd" and svc:
+        st = run("systemctl is-active " + svc)
+        res["status"] = st if st else "unknown"
+        mem = run("systemctl show %s --property=MemoryCurrent --value" % svc)
+        if mem.isdigit():
+            res["memory_bytes"] = int(mem)
+        res["uptime_seconds"] = parse_uptime(
+            run("systemctl show %s --property=ActiveEnterTimestamp --value" % svc))
+    elif t == "docker" and svc:
+        st = run("docker inspect --format '{{.State.Status}}' " + svc)
+        res["status"] = st if st else "unknown"
+        mem = run("docker stats --no-stream --format '{{.MemUsage}}' " + svc)
+        res["memory_bytes"] = mem_to_bytes(mem)
+        res["uptime_seconds"] = parse_uptime(
+            run("docker inspect --format '{{.State.StartedAt}}' " + svc))
+    port = p.get("port")
+    if port:
+        res["port_active"] = (":" + str(port)) in run("ss -tln")
+    if t == "port":
+        res["status"] = "active" if res["port_active"] else "inactive"
+    path = p.get("path")
+    if path and os.path.isdir(path):
+        try:
+            res["created_at"] = time.strftime(
+                "%Y-%m-%d %H:%M", time.localtime(os.stat(path).st_ctime))
+        except OSError:
+            pass
+    out.append(res)
+print(json.dumps(out, ensure_ascii=False))
+'''
+
 
 def _run(cmd: list[str], timeout: float = 5.0) -> str:
     """Run a shell command, return stripped stdout or empty string on failure."""
@@ -402,6 +481,77 @@ def _collect_remote_now(cfg: dict) -> dict:
     return result
 
 
+def _remote_project_cmd() -> str:
+    """Build a one-liner that runs REMOTE_PROJECT_SCRIPT on a (possibly py3.6) remote.
+    Script travels base64-encoded via -c; project data flows through stdin."""
+    import base64
+
+    b64 = base64.b64encode(REMOTE_PROJECT_SCRIPT.encode("utf-8")).decode("ascii")
+    return "python3 -c \"import base64,sys;exec(base64.b64decode('" + b64 + "').decode())\""
+
+
+def _collect_remote_projects(server_cfg: dict, projects: list[dict]) -> list[dict]:
+    """Collect project metrics on a remote server in one SSH round-trip (cached 60s)."""
+    key = server_cfg.get("host", "")
+    now = time.time()
+    cached = _remote_cache.get("proj:" + key)
+    if cached and (now - cached[0]) < REMOTE_CACHE_SECONDS:
+        return cached[1]
+
+    empty = []
+    for p in projects:
+        r = _collect_project(p)  # local fallback shape (will fail gracefully remotely)
+        r["server"] = p.get("server")
+        r["type"] = p.get("type", "systemd")
+        empty.append(r)
+
+    if paramiko is None:
+        for r in empty:
+            r["status"] = "unknown"
+            r["error"] = "paramiko 未安装，无法采集远程项目"
+        _remote_cache["proj:" + key] = (now, empty)
+        return empty
+
+    results = list(empty)
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(
+            hostname=server_cfg.get("host", ""),
+            port=int(server_cfg.get("port", 22)),
+            username=server_cfg.get("user", "root"),
+            password=server_cfg.get("password", ""),
+            timeout=8,
+            banner_timeout=8,
+            auth_timeout=8,
+            look_for_keys=False,
+            allow_agent=False,
+        )
+        stdin, stdout, _stderr = client.exec_command(_remote_project_cmd(), timeout=25)
+        stdin.write(json.dumps(projects, ensure_ascii=False))
+        stdin.flush()
+        stdin.channel.shutdown_write()
+        out = stdout.read().decode("utf-8", errors="replace")
+        client.close()
+        data = json.loads(out)
+        for i, r in enumerate(results):
+            if i < len(data):
+                r.update({k: v for k, v in data[i].items() if v is not None})
+                r["error"] = None
+                # Recompute human-readable fields after merging remote values
+                if r.get("memory_bytes") and not r.get("memory_human"):
+                    r["memory_human"] = _human_memory(r["memory_bytes"])
+                if r.get("uptime_seconds") and not r.get("uptime_human"):
+                    r["uptime_human"] = _human_duration(r["uptime_seconds"])
+    except Exception as exc:  # noqa: BLE001
+        for r in results:
+            r["status"] = "offline"
+            r["error"] = str(exc)[:120]
+
+    _remote_cache["proj:" + key] = (now, results)
+    return results
+
+
 def _collect_all_servers() -> list[dict]:
     """Collect all servers from servers.json: local directly, remote over SSH."""
     servers: list[dict] = []
@@ -474,15 +624,43 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _serve_projects(self) -> None:
-        projects = []
+        raw: list[dict] = []
         if PROJECTS_FILE.exists():
             try:
                 data = json.loads(PROJECTS_FILE.read_text(encoding="utf-8"))
                 raw = data.get("projects", [])
             except (json.JSONDecodeError, OSError):
                 raw = []
-            for proj in raw:
+
+        projects: list[dict] = []
+        # Local projects (no "server" key) -> collect on this host
+        for proj in raw:
+            if not proj.get("server"):
                 projects.append(_collect_project(proj))
+
+        # Remote projects -> group by server name, one SSH round-trip per server
+        remote_groups: dict[str, list[dict]] = {}
+        for proj in raw:
+            if proj.get("server"):
+                remote_groups.setdefault(str(proj["server"]), []).append(proj)
+
+        if remote_groups:
+            servers_cfg: dict[str, dict] = {}
+            if SERVERS_FILE.exists():
+                try:
+                    servers_cfg = {
+                        str(cfg.get("name")): cfg
+                        for cfg in json.loads(SERVERS_FILE.read_text(encoding="utf-8")).get("servers", [])
+                    }
+                except (json.JSONDecodeError, OSError):
+                    servers_cfg = {}
+            for srv_name, projs in remote_groups.items():
+                cfg = servers_cfg.get(srv_name)
+                if not cfg:
+                    for p in projs:
+                        projects.append(_collect_project(p))
+                else:
+                    projects.extend(_collect_remote_projects(cfg, projs))
 
         self._write_json({"projects": projects, "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")})
 

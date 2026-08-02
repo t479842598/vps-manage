@@ -89,6 +89,80 @@
       "description": "VPS 项目仪表盘 — 本页面",
       "github_url": "https://github.com/t479842598/vps-manage",
       "service_name": "vps-dashboard"
+    },
+    {
+      "name": "glm2api-manage",
+      "server": "阿里 26/12/05",
+      "type": "systemd",
+      "path": "/opt/glm2api-manage",
+      "domain": "glm.tang74.top",
+      "description": "ChatGLM → OpenAI 兼容 API 代理（阿里服务器）",
+      "github_url": "https://github.com/t479842598/glm2api-manage",
+      "service_name": "glm2api-manage"
+    },
+    {
+      "name": "ds2api",
+      "server": "阿里 26/12/05",
+      "type": "docker",
+      "path": "/www/wwwroot/ds2api.tang74.top",
+      "port": 6011,
+      "domain": "ds2api.tang74.top",
+      "description": "DS API 服务 (Docker: ds2api, 6011→5001)",
+      "github_url": null,
+      "service_name": "ds2api"
+    },
+    {
+      "name": "Flare 导航",
+      "server": "阿里 26/12/05",
+      "type": "docker",
+      "port": 5005,
+      "domain": null,
+      "description": "Flare 导航页 (Docker, 5005)",
+      "github_url": null,
+      "service_name": "q18qyeszoyfnzq"
+    },
+    {
+      "name": "宝塔面板",
+      "server": "阿里 26/12/05",
+      "type": "systemd",
+      "path": "/www/server/panel",
+      "port": 14308,
+      "domain": null,
+      "description": "宝塔 Linux 服务器管理面板 (BT-Panel)",
+      "github_url": null,
+      "service_name": "bt"
+    },
+    {
+      "name": "qwen2api",
+      "server": "阿里 26/12/05",
+      "type": "port",
+      "path": "/www/wwwroot/qw.tang74.top",
+      "port": 3000,
+      "domain": "qw.tang74.top",
+      "description": "QW 对话前端/API (PM2: qwen2api)",
+      "github_url": null,
+      "service_name": null
+    },
+    {
+      "name": "ticketpro",
+      "server": "阿里 26/12/05",
+      "type": "port",
+      "path": "/www/wwwroot/ticketpro.tang74.top",
+      "port": 4173,
+      "domain": "ticketpro.tang74.top",
+      "description": "TicketPro 静态服务 (PM2, 4173)",
+      "github_url": null,
+      "service_name": null
+    },
+    {
+      "name": "OCR 服务",
+      "server": "阿里 26/12/05",
+      "type": "port",
+      "port": 11008,
+      "domain": "ocr.tang74.top",
+      "description": "OCR 识别服务 (uvicorn, 11008)",
+      "github_url": null,
+      "service_name": null
     }
   ]
 }
