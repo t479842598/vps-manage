@@ -2,14 +2,20 @@
 vps-dashboard server — lightweight project dashboard for VPS.
 Listens on 127.0.0.1:9090 only. Reverse-proxied by Nginx.
 """
-from __future__ import annotations
-
 import json
 import os
 import subprocess
 import time
 from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
+try:
+    from http.server import ThreadingHTTPServer  # Python 3.7+
+except ImportError:  # pragma: no cover - Python 3.6 fallback
+    from http.server import HTTPServer
+    from socketserver import ThreadingMixIn
+
+    class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+        daemon_threads = True
 from pathlib import Path
 
 HOST = "127.0.0.1"
@@ -19,8 +25,8 @@ SERVERS_FILE = Path(__file__).resolve().parent / "servers.json"
 HTML_FILE = Path(__file__).resolve().parent / "index.html"
 CACHE_SECONDS = 5
 
-_pid_cache: dict[str, tuple[float, str | None]] = {}
-_remote_cache: dict[str, tuple[float, dict]] = {}
+_pid_cache = {}
+_remote_cache = {}
 REMOTE_CACHE_SECONDS = 60
 
 try:
@@ -120,16 +126,18 @@ print(json.dumps(out, ensure_ascii=False))
 '''
 
 
-def _run(cmd: list[str], timeout: float = 5.0) -> str:
+def _run(cmd, timeout = 5.0):
     """Run a shell command, return stripped stdout or empty string on failure."""
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, timeout=timeout)
         return result.stdout.strip()
     except Exception:
         return ""
 
 
-def _human_duration(seconds: float) -> str:
+def _human_duration(seconds):
     """Convert seconds to human-readable duration like '3天 12小时 45分钟'."""
     if seconds < 0:
         return "N/A"
@@ -146,7 +154,7 @@ def _human_duration(seconds: float) -> str:
     return " ".join(parts)
 
 
-def _human_memory(bytes_val: int) -> str:
+def _human_memory(bytes_val):
     """Convert bytes to human-readable memory string."""
     if bytes_val <= 0:
         return "N/A"
@@ -157,7 +165,40 @@ def _human_memory(bytes_val: int) -> str:
     return f"{bytes_val:.1f} PB"
 
 
-def _get_pid(service_name: str) -> str | None:
+def _mem_to_bytes(s):
+    """Parse '70.26MiB / 1.843GiB' (docker stats MemUsage) into bytes."""
+    try:
+        part = s.split("/")[0].strip()
+        num_s, _, unit = part.partition(" ")
+        if not unit:
+            import re
+
+            m = re.match(r"([\d.]+)\s*([A-Za-z]+)", part)
+            if not m:
+                return None
+            num_s, unit = m.group(1), m.group(2)
+        num = float(num_s)
+        table = {"KiB": 1024, "MiB": 1024**2, "GiB": 1024**3, "TiB": 1024**4,
+                 "kB": 1000, "MB": 1000**2, "GB": 1000**3, "B": 1}
+        return int(num * table.get(unit, 1))
+    except Exception:
+        return None
+
+
+def _parse_started_at(s):
+    """Parse '2026-07-29T08:12:34.567890123Z' (docker StartedAt) into uptime seconds."""
+    if not s:
+        return None
+    try:
+        s2 = s.replace("Z", "").split(".")[0]
+        dt = time.strptime(s2, "%Y-%m-%dT%H:%M:%S")
+        started = time.mktime(dt)
+        return max(0, int(time.time() - started))
+    except (ValueError, OSError):
+        return None
+
+
+def _get_pid(service_name):
     """Get MainPID for a systemd service with 5-second cache."""
     now = time.time()
     cached = _pid_cache.get(service_name)
@@ -171,7 +212,7 @@ def _get_pid(service_name: str) -> str | None:
     return None
 
 
-def _collect_project(proj: dict) -> dict:
+def _collect_project(proj):
     """Enrich a project dict with live data from the VPS."""
     result = {
         "name": proj.get("name", ""),
@@ -191,35 +232,57 @@ def _collect_project(proj: dict) -> dict:
     }
 
     svc = result["service_name"]
-    if not svc:
+    ptype = proj.get("type", "systemd")
+    if ptype == "docker" and svc:
+        # Docker container
+        status = _run(["docker", "inspect", "--format", "{{.State.Status}}", svc])
+        result["status"] = status if status else "unknown"
+        mem = _run(["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", svc])
+        mem_b = _mem_to_bytes(mem)
+        if mem_b:
+            result["memory_bytes"] = mem_b
+            result["memory_human"] = _human_memory(mem_b)
+        started = _run(["docker", "inspect", "--format", "{{.State.StartedAt}}", svc])
+        up = _parse_started_at(started)
+        if up:
+            result["uptime_seconds"] = up
+            result["uptime_human"] = _human_duration(up)
+    elif ptype == "port":
+        # Port-based health (PM2 / uvicorn etc.)
+        port = result["port"]
+        if port:
+            check = _run(["ss", "-tlnp"])
+            result["port_active"] = f":{port}" in check
+        result["status"] = "active" if result["port_active"] else "inactive"
+    elif not svc:
         return result
+    else:
+        # systemd service (default)
+        status = _run(["systemctl", "is-active", svc])
+        result["status"] = status if status else "unknown"
 
-    # Status: active / inactive / failed / unknown
-    status = _run(["systemctl", "is-active", svc])
-    result["status"] = status if status else "unknown"
+        # Memory via systemctl MemoryCurrent (cgroup-based, bytes)
+        mem_raw = _run(["systemctl", "show", svc, "--property=MemoryCurrent", "--value"])
+        if mem_raw and mem_raw.isdigit():
+            mem_bytes = int(mem_raw)
+            result["memory_bytes"] = mem_bytes
+            result["memory_human"] = _human_memory(mem_bytes)
 
-    # Memory via systemctl MemoryCurrent (cgroup-based, bytes)
-    mem_raw = _run(["systemctl", "show", svc, "--property=MemoryCurrent", "--value"])
-    if mem_raw and mem_raw.isdigit():
-        mem_bytes = int(mem_raw)
-        result["memory_bytes"] = mem_bytes
-        result["memory_human"] = _human_memory(mem_bytes)
-
-    # Uptime
-    active_ts = _run(["systemctl", "show", svc, "--property=ActiveEnterTimestamp", "--value"])
-    if active_ts:
-        try:
-            parts = active_ts.split(" ", 1)
-            if len(parts) >= 2:
-                ts_str = parts[1]
-                ts_str = " ".join(ts_str.split()[:2])
-                started = time.mktime(time.strptime(ts_str, "%Y-%m-%d %H:%M:%S"))
-                uptime = time.time() - started
-                if uptime >= 0:
-                    result["uptime_seconds"] = int(uptime)
-                    result["uptime_human"] = _human_duration(uptime)
-        except (ValueError, OSError):
-            pass
+        # Uptime
+        active_ts = _run(["systemctl", "show", svc, "--property=ActiveEnterTimestamp", "--value"])
+        if active_ts:
+            try:
+                parts = active_ts.split(" ", 1)
+                if len(parts) >= 2:
+                    ts_str = parts[1]
+                    ts_str = " ".join(ts_str.split()[:2])
+                    started = time.mktime(time.strptime(ts_str, "%Y-%m-%d %H:%M:%S"))
+                    uptime = time.time() - started
+                    if uptime >= 0:
+                        result["uptime_seconds"] = int(uptime)
+                        result["uptime_human"] = _human_duration(uptime)
+            except (ValueError, OSError):
+                pass
 
     # Port check
     port = result["port"]
@@ -244,9 +307,9 @@ def _collect_project(proj: dict) -> dict:
     return result
 
 
-def _collect_server_info() -> dict:
+def _collect_server_info():
     """Collect host-level server info."""
-    info: dict = {
+    info = {
         "hostname": os.uname().nodename if hasattr(os, "uname") else "unknown",
         "kernel": "",
         "os": "",
@@ -346,7 +409,7 @@ def _collect_server_info() -> dict:
     return info
 
 
-def _collect_remote_server(cfg: dict) -> dict:
+def _collect_remote_server(cfg):
     """Collect metrics from a remote server over SSH (paramiko), cached 60s."""
     host = cfg.get("host", "")
     now = time.time()
@@ -358,7 +421,7 @@ def _collect_remote_server(cfg: dict) -> dict:
     return result
 
 
-def _collect_remote_now(cfg: dict) -> dict:
+def _collect_remote_now(cfg):
     """Collect metrics from a remote server over SSH (paramiko)."""
     result = {
         "name": cfg.get("name", ""),
@@ -410,7 +473,7 @@ def _collect_remote_now(cfg: dict) -> dict:
         result["error"] = str(exc)[:120]
         return result
 
-    kv: dict[str, str] = {}
+    kv = {}
     for line in out.splitlines():
         line = line.strip()
         if "=" in line:
@@ -481,7 +544,7 @@ def _collect_remote_now(cfg: dict) -> dict:
     return result
 
 
-def _remote_project_cmd() -> str:
+def _remote_project_cmd():
     """Build a one-liner that runs REMOTE_PROJECT_SCRIPT on a (possibly py3.6) remote.
     Script travels base64-encoded via -c; project data flows through stdin."""
     import base64
@@ -490,7 +553,7 @@ def _remote_project_cmd() -> str:
     return "python3 -c \"import base64,sys;exec(base64.b64decode('" + b64 + "').decode())\""
 
 
-def _collect_remote_projects(server_cfg: dict, projects: list[dict]) -> list[dict]:
+def _collect_remote_projects(server_cfg, projects):
     """Collect project metrics on a remote server in one SSH round-trip (cached 60s)."""
     key = server_cfg.get("host", "")
     now = time.time()
@@ -552,9 +615,9 @@ def _collect_remote_projects(server_cfg: dict, projects: list[dict]) -> list[dic
     return results
 
 
-def _collect_all_servers() -> list[dict]:
+def _collect_all_servers():
     """Collect all servers from servers.json: local directly, remote over SSH."""
-    servers: list[dict] = []
+    servers = []
     if not SERVERS_FILE.exists():
         return servers
     try:
@@ -599,7 +662,7 @@ def _collect_all_servers() -> list[dict]:
 class DashboardHandler(BaseHTTPRequestHandler):
     """Single-route handler: / → index.html, /api/projects → JSON, /api/server → JSON."""
 
-    def do_GET(self) -> None:
+    def do_GET(self):
         if self.path in ("/", "/index.html"):
             self._serve_html()
         elif self.path == "/api/projects":
@@ -614,7 +677,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
-    def _serve_html(self) -> None:
+    def _serve_html(self):
         body = HTML_FILE.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -623,8 +686,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _serve_projects(self) -> None:
-        raw: list[dict] = []
+    def _serve_projects(self):
+        raw = []
         if PROJECTS_FILE.exists():
             try:
                 data = json.loads(PROJECTS_FILE.read_text(encoding="utf-8"))
@@ -632,20 +695,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
             except (json.JSONDecodeError, OSError):
                 raw = []
 
-        projects: list[dict] = []
+        projects = []
         # Local projects (no "server" key) -> collect on this host
         for proj in raw:
             if not proj.get("server"):
                 projects.append(_collect_project(proj))
 
         # Remote projects -> group by server name, one SSH round-trip per server
-        remote_groups: dict[str, list[dict]] = {}
+        remote_groups = {}
         for proj in raw:
             if proj.get("server"):
                 remote_groups.setdefault(str(proj["server"]), []).append(proj)
 
         if remote_groups:
-            servers_cfg: dict[str, dict] = {}
+            servers_cfg = {}
             if SERVERS_FILE.exists():
                 try:
                     servers_cfg = {
@@ -664,15 +727,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         self._write_json({"projects": projects, "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")})
 
-    def _serve_server(self) -> None:
+    def _serve_server(self):
         self._write_json(_collect_server_info())
 
-    def _serve_servers(self) -> None:
+    def _serve_servers(self):
         self._write_json(
             {"servers": _collect_all_servers(), "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}
         )
 
-    def _write_json(self, payload: dict) -> None:
+    def _write_json(self, payload):
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -681,11 +744,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, format: str, *args: object) -> None:
+    def log_message(self, format, *args):
         pass  # suppress default stderr logging
 
 
-def main() -> None:
+def main():
     server = ThreadingHTTPServer((HOST, PORT), DashboardHandler)
     server.allow_reuse_address = True
     print(f"vps-dashboard listening on {HOST}:{PORT}")
