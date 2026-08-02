@@ -4,7 +4,7 @@
 
 深色科技风 Web 界面，实时展示项目状态、内存占用、运行时长，以及每台服务器的 CPU / 内存 / 磁盘 / 负载。
 
-在线地址：[https://dash.274747.xyz](https://dash.274747.xyz)（HTTP 自动跳转 HTTPS）
+在线地址：[https://dash.274747.xyz](https://dash.274747.xyz)（主服务器）· [https://dash.tang74.top](https://dash.tang74.top)（阿里云，HTTP 自动跳转 HTTPS）
 
 ---
 
@@ -99,6 +99,12 @@ certbot --nginx -d dash.274747.xyz --redirect
 ```
 
 ## 🔄 更新日志
+
+### 2026-08-02 — 阿里云部署 + py3.6 兼容
+- 🆕 部署至**阿里云**（182.92.127.90，Alibaba Cloud Linux 3 / Python 3.6.8），独立域名 **dash.tang74.top**（Let's Encrypt 证书，acme.sh 自动续期）
+- 🆕 双服务器对等部署：阿里为「本机」时主服务器走远程采集，反之亦然（servers.json 各配各的本机）
+- 🔧 全量兼容 Python 3.6：移除 3.10+ 类型注解、`subprocess.run(capture_output/text=)`、`ThreadingHTTPServer`、`from __future__ annotations`；`_run` 改用 `stdout=PIPE + universal_newlines`
+- 🆕 本机采集支持 `docker`/`port` 类型项目（与远程采集逻辑对齐）
 
 ### 2026-08-02 — 多服务器监控 + HTTPS
 - 🆕 **多服务器模块**：新增 `servers.json` 注册表与 `/api/servers` 接口，支持 SSH 远程采集（paramiko，60s 缓存）
