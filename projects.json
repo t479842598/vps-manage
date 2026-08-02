@@ -3,8 +3,8 @@
     {
       "name": "glm2api",
       "path": "/opt/glm2api",
-      "port": 8000,
-      "domain": "api.274747.xyz",
+      "port": 8001,
+      "domain": "glm2api.274747.xyz",
       "description": "ChatGLM Web API → OpenAI 兼容 API 代理，支持 GLM 全系列模型（GLM-5.2/5.1/5/4.7/4.6 等）",
       "github_url": "https://github.com/t479842598/glm2api-manage",
       "service_name": "glm2api"
@@ -20,7 +20,7 @@
     },
     {
       "name": "freebuff2api",
-      "path": "/opt/freebuff2api-vercel",
+      "path": "/opt/freebuff2apiNew",
       "port": 3002,
       "domain": "freebuff.274747.xyz",
       "description": "FreeBuff Web → OpenAI 兼容 API 代理",
@@ -32,16 +32,16 @@
       "path": "/opt/deepseek-fr-reverse",
       "port": 9000,
       "domain": "ds.274747.xyz",
-      "description": "DeepSeek 转发代理 (含 dsapi.274747.xyz)",
+      "description": "DeepSeek 转发代理（含 dsapi.274747.xyz / ds2pi.274747.xyz）",
       "github_url": null,
       "service_name": "ds-piracy"
     },
     {
-      "name": "Open WebUI",
-      "path": "/opt/open-webui",
+      "name": "Deeix Chat WebUI",
+      "path": "/opt/deeix-chat",
       "port": 3001,
       "domain": "webui.274747.xyz",
-      "description": "ChatGPT 风格 AI 对话前端 (Docker)",
+      "description": "ChatGPT 风格 AI 对话前端 (Docker: deeix-chat-app)",
       "github_url": null,
       "service_name": null
     },
@@ -50,18 +50,9 @@
       "path": "/opt/octopus",
       "port": 8080,
       "domain": "octopus.274747.xyz",
-      "description": "Octopus 服务",
+      "description": "Octopus 服务 (Docker)",
       "github_url": null,
       "service_name": null
-    },
-    {
-      "name": "TG FileStreamBot",
-      "path": "/opt/tg-filestreambot",
-      "port": 18038,
-      "domain": "tgfsb.274747.xyz",
-      "description": "Telegram 文件流机器人",
-      "github_url": null,
-      "service_name": "tg-filestreambot"
     },
     {
       "name": "1Panel",
